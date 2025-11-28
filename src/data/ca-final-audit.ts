@@ -8,6 +8,15 @@ interface Concept {
   keyPoints: string[];
   example: string;
   formula?: string;
+  questions?: QuestionAnswer[];
+}
+
+export interface QuestionAnswer {
+  id: string;
+  question: string;
+  answer: string;
+  howToApproach: string;
+  conceptExplanation: string;
 }
 
 export const caFinalAuditConcepts: Concept[] = [
@@ -17,7 +26,23 @@ export const caFinalAuditConcepts: Concept[] = [
     difficulty: 'advanced',
     description: 'Content to be added',
     keyPoints: ['Content to be added'],
-    example: 'Content to be added'
+    example: 'Content to be added',
+    questions: [
+      {
+        id: 'q1',
+        question: 'Explain the concept of Quality Control in audit practice and its importance.',
+        answer: 'Quality Control refers to policies and procedures adopted by an audit firm to ensure that all audits conducted comply with applicable auditing standards. It encompasses leadership responsibilities, ethical requirements, acceptance and continuance of client relationships, human resources, engagement performance, and monitoring. SQC 1 issued by ICAI provides the framework for quality control systems.',
+        howToApproach: 'Define quality control, explain its objectives, discuss the six elements of SQC 1 (Leadership, Ethics, Client acceptance, HR, Engagement performance, Monitoring). Mention the importance of quality control in maintaining audit quality and public confidence.',
+        conceptExplanation: 'Quality control is the backbone of professional audit practice. It ensures consistency, compliance with standards, and protects the reputation of the audit firm and the profession as a whole.'
+      },
+      {
+        id: 'q2',
+        question: 'What are the responsibilities of engagement partners in ensuring quality control?',
+        answer: 'The engagement partner is responsible for the overall quality of each audit engagement. Key responsibilities include being satisfied that appropriate procedures regarding client acceptance and continuance have been followed, ensuring the engagement team collectively has the appropriate competence and capabilities, taking responsibility for direction, supervision and performance of the audit, and being satisfied through review that sufficient appropriate audit evidence has been obtained.',
+        howToApproach: 'List the specific responsibilities of engagement partners, emphasize their accountability for audit quality, discuss how they ensure team competence, and explain their role in review and supervision.',
+        conceptExplanation: 'The engagement partner acts as the quality gatekeeper for each audit. Their oversight and final review ensure that the audit meets professional standards and regulatory requirements.'
+      }
+    ]
   },
   {
     id: 'ch2-general-principles',

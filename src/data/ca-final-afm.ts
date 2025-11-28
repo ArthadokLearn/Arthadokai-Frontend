@@ -8,6 +8,17 @@ interface Concept {
   keyPoints: string[];
   example: string;
   formula?: string;
+  questions?: QuestionAnswer[];
+}
+
+export interface QuestionAnswer {
+  id: string;
+  question: string;
+  answer: string;
+  howToApproach: string;
+  conceptExplanation: string;
+  conceptImages?: string[]; // base64 encoded images
+  category?: 'Theoretical Questions & Answers' | 'Practical Questions & Answers' | 'Case Studies' | 'Multiple Choice Questions' | 'Formulas & Insights' | 'Other'; // Question category
 }
 
 export const caFinalAFMConcepts: Concept[] = [
@@ -28,7 +39,23 @@ export const caFinalAFMConcepts: Concept[] = [
       'Agency Theory: Conflicts between shareholders, debtholders, managers'
     ],
     example: 'Example: Capital Structure Decision\n\nCompany ABC considering optimal capital structure:\nEBIT: ₹100 crore\nCurrent: 100% Equity (10 crore shares @ ₹100)\n\nProposal: 50% Debt at 10% interest\nDebt raised: ₹500 crore (buyback 5 crore shares)\n\nScenario Analysis:\n\nAll Equity:\nEBIT: ₹100 cr\nInterest: ₹0\nEBT: ₹100 cr\nTax @30%: ₹30 cr\nPAT: ₹70 cr\nEPS: ₹70/10 = ₹7\nROE: 70/1000 = 7%\n\n50% Debt:\nEBIT: ₹100 cr\nInterest: ₹50 cr (10% of ₹500 cr)\nEBT: ₹50 cr\nTax @30%: ₹15 cr\nPAT: ₹35 cr\nEPS: ₹35/5 = ₹7\nROE: 35/500 = 7%\n\nAt EBIT ₹100 cr, both structures give same EPS.\nIndifference Point: EBIT where EPS is equal under both plans.\n\nIf EBIT increases to ₹150 cr:\nAll Equity EPS: ₹10.5\n50% Debt EPS: ₹14 (Financial leverage benefit)',
-    formula: 'WACC = (E/V × Re) + (D/V × Rd × (1-Tc)) where V = E + D'
+    formula: 'WACC = (E/V × Re) + (D/V × Rd × (1-Tc)) where V = E + D',
+    questions: [
+      {
+        id: 'q1',
+        question: 'Explain the Modigliani-Miller (MM) Theorem and its relevance to capital structure decisions.',
+        answer: 'The MM Theorem states that in a perfect market (no taxes, transaction costs, or bankruptcy costs), the value of a firm is independent of its capital structure. Proposition I states that firm value equals the present value of expected future cash flows, unaffected by financing mix. Proposition II states that cost of equity increases linearly with financial leverage. With corporate taxes (MM with taxes), debt financing adds value through tax shields on interest payments.',
+        howToApproach: 'Start with MM assumptions (perfect markets), explain Proposition I and II separately, then discuss the impact of introducing corporate taxes. Highlight the practical limitations and why firms don\'t operate at 100% debt despite tax benefits.',
+        conceptExplanation: 'The MM Theorem provides the foundation for understanding capital structure theory. While unrealistic, it establishes the baseline that deviations from optimal structure arise from market imperfections.'
+      },
+      {
+        id: 'q2',
+        question: 'Distinguish between Trading on Equity and Financial Leverage.',
+        answer: 'Trading on Equity refers to the practice of using fixed-cost debt or preference capital to increase returns to equity shareholders when the return on investment exceeds the fixed cost. Financial Leverage measures the sensitivity of EPS to changes in EBIT.',
+        howToApproach: 'Define both terms, explain the conditions for favorable leverage (ROI > Cost of Debt), use a numerical example showing how EBIT changes affect EPS differently under different capital structures.',
+        conceptExplanation: 'These concepts explain why companies use debt financing strategically. While debt can magnify returns during good times, it also magnifies losses during downturns.'
+      }
+    ]
   },
   {
     id: 'ch2-risk-management',

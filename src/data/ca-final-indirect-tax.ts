@@ -8,6 +8,15 @@ interface Concept {
   keyPoints: string[];
   example: string;
   formula?: string;
+  questions?: QuestionAnswer[];
+}
+
+export interface QuestionAnswer {
+  id: string;
+  question: string;
+  answer: string;
+  howToApproach: string;
+  conceptExplanation: string;
 }
 
 export const caFinalIndirectTaxConcepts: Concept[] = [
@@ -17,7 +26,23 @@ export const caFinalIndirectTaxConcepts: Concept[] = [
     difficulty: 'advanced',
     description: 'Content to be added',
     keyPoints: ['Content to be added'],
-    example: 'Content to be added'
+    example: 'Content to be added',
+    questions: [
+      {
+        id: 'q1',
+        question: 'Define "Supply" under GST and explain its significance.',
+        answer: 'Supply is the taxable event under GST. Section 7 of CGST Act defines supply to include all forms of supply of goods or services such as sale, transfer, barter, exchange, license, rental, lease or disposal made or agreed to be made for a consideration by a person in the course or furtherance of business. The definition also includes supplies specified in Schedule I (without consideration), Schedule II (goods or services), and Schedule III (excluded from supply).',
+        howToApproach: 'Start with the statutory definition from Section 7, explain the essential elements (goods/services, for consideration, in the course of business), discuss deemed supplies and activities excluded from supply. Use examples for clarity.',
+        conceptExplanation: 'Supply is the broadest taxable event under GST, replacing previous concepts like manufacture and sale. Understanding what constitutes supply is crucial as GST is levied on all supplies except those specifically excluded.'
+      },
+      {
+        id: 'q2',
+        question: 'Explain the concept of "Composite Supply" and "Mixed Supply" under GST with examples.',
+        answer: 'Composite Supply is a supply consisting of two or more taxable supplies naturally bundled and supplied in conjunction with each other in the ordinary course of business, one being the principal supply (e.g., restaurant meal with food and service). Mixed Supply is a supply of two or more individual supplies not naturally bundled, supplied together for a single price (e.g., gift hamper). Composite supply is taxed at the rate of principal supply, while mixed supply is taxed at the highest rate applicable to any of the supplies.',
+        howToApproach: 'Define both concepts separately, highlight key differences (natural bundling vs artificial bundling), explain tax treatment for each, and provide practical examples. Discuss the importance of classification for correct tax determination.',
+        conceptExplanation: 'The distinction between composite and mixed supply is critical for determining applicable GST rates. Misclassification can lead to incorrect tax payment and potential disputes with authorities.'
+      }
+    ]
   },
   {
     id: 'ch2-charge',

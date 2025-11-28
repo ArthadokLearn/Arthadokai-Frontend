@@ -8,6 +8,15 @@ interface Concept {
   keyPoints: string[];
   example: string;
   formula?: string;
+  questions?: QuestionAnswer[];
+}
+
+export interface QuestionAnswer {
+  id: string;
+  question: string;
+  answer: string;
+  howToApproach: string;
+  conceptExplanation: string;
 }
 
 export const caFinalLawConcepts: Concept[] = [
@@ -17,7 +26,23 @@ export const caFinalLawConcepts: Concept[] = [
     difficulty: 'advanced',
     description: 'Content to be added',
     keyPoints: ['Content to be added'],
-    example: 'Content to be added'
+    example: 'Content to be added',
+    questions: [
+      {
+        id: 'q1',
+        question: 'Explain the concept of "Residential Status" under the Income Tax Act and its significance in determining tax liability.',
+        answer: 'Residential status determines the scope of total income that is taxable in India. An individual can be classified as Resident and Ordinarily Resident (ROR), Resident but Not Ordinarily Resident (RNOR), or Non-Resident (NR). ROR individuals are taxed on worldwide income, RNOR on Indian income plus foreign income from business/profession controlled from India, and NR only on income received/deemed to be received in India or accruing/arising in India.',
+        howToApproach: 'Start by explaining why residential status matters, then define the three categories. Discuss the conditions for each status (physical presence tests), and conclude with the scope of taxable income for each category with examples.',
+        conceptExplanation: 'Residential status is fundamental to determining tax liability. The Income Tax Act follows the residence-based taxation system, where the extent of tax liability depends on how closely connected the taxpayer is to India during the previous year.'
+      },
+      {
+        id: 'q2',
+        question: 'Distinguish between "Income deemed to accrue or arise in India" and "Income deemed to be received in India".',
+        answer: 'Income deemed to accrue or arise in India includes salary for services rendered in India, income from business controlled from India, dividend from Indian companies, income from assets/property in India, etc. Income deemed to be received in India includes any sum payable by government to a non-resident, dividends paid by Indian companies outside India, salary earned by Indian citizens working abroad on Indian ships, etc. The distinction is crucial as it affects when and where tax liability arises.',
+        howToApproach: 'Define both concepts separately, list the specific incomes covered under each category as per Sections 9 and 5(2), explain with examples, and highlight the practical implications for tax computation.',
+        conceptExplanation: 'These deeming provisions expand the tax net beyond actual accrual or receipt in India. They ensure that certain incomes with a substantial connection to India are taxed here regardless of where they physically accrue or are received.'
+      }
+    ]
   },
   {
     id: 'ch2-exempt-income',
