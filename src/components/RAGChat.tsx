@@ -530,9 +530,7 @@ export function RAGChat({ course, level, allChapters, onClose, userEmail }: RAGC
                       : 'bg-white dark:bg-gray-800'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap text-sm">
-                    {message.content}
-                  </div>
+                  <MathJax dynamic><div className="whitespace-pre-wrap">{message.content}</div></MathJax>
 
                   {message.sources && message.sources.length > 0 && (
                     <div className="mt-4 pt-4 border-t dark:border-gray-700 space-y-2">
