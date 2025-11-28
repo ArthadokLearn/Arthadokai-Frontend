@@ -7,8 +7,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Send, Bot, User, Sparkles, BookOpen, Loader2, Filter, ArrowLeft, Plus, Trash2, MessageSquare, History, X } from 'lucide-react';
 import { Separator } from './ui/separator';
-import MathJax from "react-mathjax-next";
-
+import { MathJax } from "better-react-mathjax";
 
 interface Message {
   id: string;
