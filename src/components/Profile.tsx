@@ -9,6 +9,7 @@ import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 import { Settings } from './Settings';
+import { AdminPanel } from './AdminPanel';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,7 @@ import {
   Moon,
   Sun,
   ChevronLeft,
+  Shield,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
@@ -746,14 +748,25 @@ export function Profile({
 
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-4">
-          <Settings
-            currentUser={currentUser}
-            onUpdateUser={onUpdateUser}
-            onDeleteAccount={onDeleteAccount}
-            onClearProgress={onClearProgress}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={onToggleDarkMode}
-          />
+          {currentUser.userType === 'admin' ? (
+            <AdminPanel
+              currentUser={currentUser}
+              onUpdateUser={onUpdateUser}
+              onDeleteAccount={onDeleteAccount}
+              onClearProgress={onClearProgress}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={onToggleDarkMode}
+            />
+          ) : (
+            <Settings
+              currentUser={currentUser}
+              onUpdateUser={onUpdateUser}
+              onDeleteAccount={onDeleteAccount}
+              onClearProgress={onClearProgress}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={onToggleDarkMode}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>

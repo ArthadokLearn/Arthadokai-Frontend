@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { Lightbulb, ChevronRight, Sparkles, BookmarkPlus } from 'lucide-react';
+import { Lightbulb, ChevronRight, Sparkles, BookmarkPlus, Edit, Save, X, HelpCircle, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { toast } from 'sonner@2.0.3';
 import { caFoundationQuantitativeAptitudeConcepts } from '../data/ca-foundation-quantitative-aptitude';
 import { caFoundationBusinessEconomicsConcepts } from '../data/ca-foundation-business-economics';
 import { caFoundationAccountingConcepts } from '../data/ca-foundation-accounting';
@@ -17,10 +19,11 @@ import { caInterAdvancedAccountingConcepts } from '../data/ca-inter-advanced-acc
 import { caInterAuditingEthicsConcepts } from '../data/ca-inter-auditing-ethics';
 import { caInterEISSMConcepts } from '../data/ca-inter-eis-sm';
 import { caInterFMEconomicsConcepts } from '../data/ca-inter-fm-economics';
-import { caFinalFinancialReportingConcepts } from '../data/ca-final-financial-reporting';
+import { caFinalFinancialReportingConcepts, QuestionAnswer } from '../data/ca-final-financial-reporting';
 import { caFinalAFMConcepts } from '../data/ca-final-afm';
 import { caFinalAuditConcepts } from '../data/ca-final-audit';
 import { caFinalLawConcepts } from '../data/ca-final-law';
+import { caFinalIndirectTaxConcepts } from '../data/ca-final-indirect-tax';
 
 interface Concept {
   id: string;
@@ -30,6 +33,8 @@ interface Concept {
   keyPoints: string[];
   example: string;
   formula?: string;
+  questions?: QuestionAnswer[];
+  subchapters?: Concept[]; // Support for hierarchical chapters
 }
 
 const conceptsData: Record<string, Concept[]> = {
@@ -458,7 +463,7 @@ const conceptsData: Record<string, Concept[]> = {
         'Used to measure risk, consistency, and variability'
       ],
       example: 'Example: Find SD for data: 2, 4, 6, 8, 10\n\nMean (x̄) = (2+4+6+8+10)/5 = 30/5 = 6\n\nDeviations from mean:\n(2-6)² = 16\n(4-6)² = 4\n(6-6)² = 0\n(8-6)² = 4\n(10-6)² = 16\n\nVariance = (16+4+0+4+16)/5 = 40/5 = 8\nSD = √8 = 2.83',
-      formula: 'Variance = Σ(x - x̄)²/n; Standard Deviation = √Variance'
+      formula: 'Variance = Σ(x - x̄)��/n; Standard Deviation = √Variance'
     }
   ],
   'CA Foundation-business-economics': [
@@ -688,7 +693,12 @@ const conceptsData: Record<string, Concept[]> = {
       example: 'Example: Sale of goods within state for ₹1,00,000 @ 18%\n\nBasic Value: ₹1,00,000\nCGST @ 9%: ₹9,000\nSGST @ 9%: ₹9,000\nTotal Invoice Value: ₹1,18,000\n\n(Both CGST and SGST for intra-state supply)'
     }
   ],
-  'CA Final-financial-reporting': [
+  'CA Final-financial-reporting': caFinalFinancialReportingConcepts,
+  'CA Final-direct-tax': caFinalLawConcepts,
+  'CA Final-advanced-fm': caFinalAFMConcepts,
+  'CA Final-advanced-audit': caFinalAuditConcepts,
+  'CA Final-indirect-tax': caFinalIndirectTaxConcepts,
+  '__CA_FINAL_OLD_DATA': [
     {
       id: 'ind-as-consolidation',
       title: 'Ind AS 110: Consolidated Financial Statements',
@@ -844,14 +854,61 @@ interface ConceptViewerProps {
   level: string;
   subject: string;
   chapterId: string;
+  currentUser: any;
+  questionCategory?: 'Theoretical Questions & Answers' | 'Practical Questions & Answers' | 'Case Studies' | 'Multiple Choice Questions' | 'Extract of Financial Statements' | 'Formulas & Insights' | 'Extract of Audit Report' | 'Other';
 }
 
-export function ConceptViewer({ course, level, subject, chapterId }: ConceptViewerProps) {
+export function ConceptViewer({ course, level, subject, chapterId, currentUser, questionCategory }: ConceptViewerProps) {
   const conceptKey = `${level}-${subject}`;
   const allConcepts = conceptsData[conceptKey] || [];
   
-  // Find the specific chapter
-  const chapter = allConcepts.find(c => c.id === chapterId);
+  // State for Q&A
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [qaData, setQaData] = useState<Record<string, QuestionAnswer>>({});
+  
+  // Ref for file input - must be at top level
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Find the specific chapter (including subchapters)
+  let chapter: Concept | undefined = allConcepts.find(c => c.id === chapterId);
+  
+  // If not found in main chapters, search in subchapters
+  if (!chapter) {
+    for (const mainChapter of allConcepts) {
+      if (mainChapter.subchapters) {
+        chapter = mainChapter.subchapters.find(sub => sub.id === chapterId);
+        if (chapter) break;
+      }
+    }
+  }
+  
+  // Load Q&A data from localStorage on mount
+  useEffect(() => {
+    if (chapter?.questions) {
+      const storageKey = `qa_${level}_${subject}_${chapterId}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        setQaData(JSON.parse(stored));
+      } else {
+        // Initialize with default data
+        const initial: Record<string, QuestionAnswer> = {};
+        chapter.questions.forEach(q => {
+          initial[q.id] = { ...q };
+        });
+        setQaData(initial);
+      }
+    }
+  }, [chapterId, level, subject, chapter]);
+  
+  // Save Q&A data to localStorage
+  const saveQaData = (updatedData: Record<string, QuestionAnswer>) => {
+    const storageKey = `qa_${level}_${subject}_${chapterId}`;
+    localStorage.setItem(storageKey, JSON.stringify(updatedData));
+    setQaData(updatedData);
+  };
+  
+  const isAdmin = currentUser?.userType === 'admin';
   
   if (!chapter) {
     return (
@@ -878,6 +935,20 @@ export function ConceptViewer({ course, level, subject, chapterId }: ConceptView
 
   const isCaFinal = level === 'CA Final';
 
+  // Filter questions by category if provided
+  const filteredQuestions = isCaFinal && chapter.questions 
+    ? chapter.questions.filter(q => {
+        // If no category is set on a question, treat it as "Other" by default
+        const qCategory = q.category || 'Other';
+        // If questionCategory prop is provided, filter by it
+        if (questionCategory) {
+          return qCategory === questionCategory;
+        }
+        // If no questionCategory prop, show all questions
+        return true;
+      })
+    : chapter.questions;
+
   return (
     <div className="space-y-6">
       {/* Chapter Header */}
@@ -892,56 +963,365 @@ export function ConceptViewer({ course, level, subject, chapterId }: ConceptView
       </div>
 
       {/* CA Final: Q&A Format */}
-      {isCaFinal ? (
+      {isCaFinal && filteredQuestions && filteredQuestions.length > 0 ? (
         <>
-          {/* Question & Answer Format */}
-          <Card className="p-6 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950 dark:to-blue-950 border-indigo-200 dark:border-indigo-800">
-            <h3 className="text-indigo-900 dark:text-indigo-300 mb-3">Q. Explain the concept</h3>
-            <p className="text-gray-700 dark:text-gray-300"><strong>Answer:</strong> {chapter.description}</p>
-          </Card>
-
-          {/* Formula (if applicable) */}
-          {chapter.formula && (
-            <Card className="p-6 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-              <h3 className="text-blue-900 dark:text-blue-300 mb-3">Q. What is the formula?</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-2"><strong>Answer:</strong></p>
-              <code className="text-blue-800 dark:text-blue-300 text-lg">{chapter.formula}</code>
-            </Card>
-          )}
-
-          {/* Key Points as Q&A */}
-          <Card className="p-6">
-            <h3 className="text-gray-900 dark:text-gray-100 mb-4">Q. What are the key points?</h3>
-            <p className="text-gray-700 dark:text-gray-300 mb-3"><strong>Answer:</strong></p>
-            <Accordion type="single" collapsible className="w-full">
-              {chapter.keyPoints.map((point, index) => (
-                <AccordionItem key={index} value={`item-${index}`}>
-                  <AccordionTrigger className="text-left">
-                    <div className="flex items-center gap-2">
-                      <ChevronRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      <span className="text-gray-900 dark:text-gray-100">Point {index + 1}</span>
+          {!selectedQuestion ? (
+            // Question List View
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <HelpCircle className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="text-indigo-900 dark:text-indigo-300">
+                  {questionCategory ? `${questionCategory}` : 'Select a question to view details'}
+                </h3>
+              </div>
+              {filteredQuestions.map((q, index) => (
+                <Card 
+                  key={q.id}
+                  className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-indigo-500"
+                  onClick={() => setSelectedQuestion(q.id)}
+                >
+                  <div className="flex items-start gap-3">
+                    <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 mt-1">
+                      Q{index + 1}
+                    </Badge>
+                    <div className="flex-1">
+                      <p className="text-gray-900 dark:text-gray-100">
+                        {qaData[q.id]?.question || q.question}
+                      </p>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-gray-700 dark:text-gray-300 pl-6">{point}</p>
-                  </AccordionContent>
-                </AccordionItem>
+                    <ChevronRight className="w-5 h-5 text-gray-400 mt-1" />
+                  </div>
+                </Card>
               ))}
-            </Accordion>
-          </Card>
-
-          {/* Practical Example as Q&A */}
-          <Card className="p-6 bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="text-indigo-900 dark:text-indigo-300">Q. Provide a practical example</h3>
             </div>
-            <p className="text-gray-700 dark:text-gray-300 mb-2"><strong>Answer:</strong></p>
-            <pre className="text-sm text-gray-800 dark:text-gray-300 whitespace-pre-wrap font-sans">
-              {chapter.example}
-            </pre>
-          </Card>
+          ) : (
+            // Question Detail View
+            (() => {
+              const questionData = qaData[selectedQuestion] || filteredQuestions.find(q => q.id === selectedQuestion);
+              if (!questionData) return null;
+              
+              const handleEdit = (field: string, value: string) => {
+                const updated = {
+                  ...qaData,
+                  [selectedQuestion]: {
+                    ...questionData,
+                    [field]: value
+                  }
+                };
+                saveQaData(updated);
+                setEditingField(null);
+                toast.success('Updated successfully');
+              };
+              
+              const canEditField = (field: string) => {
+                if (field === 'conceptExplanation') return true; // Everyone can edit Concept & Explanation
+                return isAdmin; // Only admin can edit other fields
+              };
+              
+              const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                
+                const file = files[0];
+                if (!file.type.startsWith('image/')) {
+                  toast.error('Please upload an image file');
+                  return;
+                }
+                
+                // Check file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                  toast.error('Image size should be less than 5MB');
+                  return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  const base64 = event.target?.result as string;
+                  const currentImages = questionData.conceptImages || [];
+                  const updated = {
+                    ...qaData,
+                    [selectedQuestion]: {
+                      ...questionData,
+                      conceptImages: [...currentImages, base64]
+                    }
+                  };
+                  saveQaData(updated);
+                  toast.success('Image uploaded successfully');
+                };
+                reader.readAsDataURL(file);
+              };
+              
+              const handleImageDelete = (index: number) => {
+                const currentImages = questionData.conceptImages || [];
+                const newImages = currentImages.filter((_, i) => i !== index);
+                const updated = {
+                  ...qaData,
+                  [selectedQuestion]: {
+                    ...questionData,
+                    conceptImages: newImages
+                  }
+                };
+                saveQaData(updated);
+                toast.success('Image deleted');
+              };
+              
+              return (
+                <div className="space-y-6">
+                  {/* Back Button */}
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setSelectedQuestion(null);
+                      setEditingField(null);
+                    }}
+                    className="gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    Back to Questions
+                  </Button>
+                  
+                  {/* Question Block */}
+                  <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-blue-900 dark:text-blue-300">Question</h3>
+                      {canEditField('question') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingField(editingField === 'question' ? null : 'question')}
+                        >
+                          {editingField === 'question' ? <X className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
+                        </Button>
+                      )}
+                    </div>
+                    {editingField === 'question' ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          defaultValue={questionData.question}
+                          className="min-h-[100px]"
+                          id="question-edit"
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            const value = (document.getElementById('question-edit') as HTMLTextAreaElement).value;
+                            handleEdit('question', value);
+                          }}
+                          className="gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          Save
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-gray-700 dark:text-gray-300">{questionData.question}</p>
+                    )}
+                  </Card>
+                  
+                  {/* Answer Block */}
+                  <Card className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-green-900 dark:text-green-300">Answer</h3>
+                      {canEditField('answer') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingField(editingField === 'answer' ? null : 'answer')}
+                        >
+                          {editingField === 'answer' ? <X className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
+                        </Button>
+                      )}
+                    </div>
+                    {editingField === 'answer' ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          defaultValue={questionData.answer}
+                          className="min-h-[150px]"
+                          id="answer-edit"
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            const value = (document.getElementById('answer-edit') as HTMLTextAreaElement).value;
+                            handleEdit('answer', value);
+                          }}
+                          className="gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          Save
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{questionData.answer}</p>
+                    )}
+                  </Card>
+                  
+                  {/* How to Approach Block */}
+                  <Card className="p-6 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-purple-900 dark:text-purple-300">How to Approach</h3>
+                      {canEditField('howToApproach') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingField(editingField === 'howToApproach' ? null : 'howToApproach')}
+                        >
+                          {editingField === 'howToApproach' ? <X className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
+                        </Button>
+                      )}
+                    </div>
+                    {editingField === 'howToApproach' ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          defaultValue={questionData.howToApproach}
+                          className="min-h-[120px]"
+                          id="howToApproach-edit"
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            const value = (document.getElementById('howToApproach-edit') as HTMLTextAreaElement).value;
+                            handleEdit('howToApproach', value);
+                          }}
+                          className="gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          Save
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{questionData.howToApproach}</p>
+                    )}
+                  </Card>
+                  
+                  {/* Concept & Explanation Block */}
+                  <Card className="p-6 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border-orange-200 dark:border-orange-800">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-orange-900 dark:text-orange-300">Concept & Explanation</h3>
+                      {canEditField('conceptExplanation') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingField(editingField === 'conceptExplanation' ? null : 'conceptExplanation')}
+                        >
+                          {editingField === 'conceptExplanation' ? <X className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
+                        </Button>
+                      )}
+                    </div>
+                    {editingField === 'conceptExplanation' ? (
+                      <div className="space-y-4">
+                        <Textarea
+                          defaultValue={questionData.conceptExplanation}
+                          className="min-h-[120px]"
+                          id="conceptExplanation-edit"
+                        />
+                        
+                        {/* Image Upload Section */}
+                        <div className="border-t dark:border-gray-600 pt-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <ImageIcon className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">Images</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="gap-2"
+                            >
+                              <Upload className="w-4 h-4" />
+                              Upload Image
+                            </Button>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              className="hidden"
+                            />
+                          </div>
+                          
+                          {/* Display uploaded images */}
+                          {questionData.conceptImages && questionData.conceptImages.length > 0 && (
+                            <div className="grid grid-cols-2 gap-3">
+                              {questionData.conceptImages.map((img, index) => (
+                                <div key={index} className="relative group">
+                                  <img 
+                                    src={img} 
+                                    alt={`Concept illustration ${index + 1}`}
+                                    className="w-full h-32 object-cover rounded border dark:border-gray-600"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleImageDelete(index)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            const value = (document.getElementById('conceptExplanation-edit') as HTMLTextAreaElement).value;
+                            handleEdit('conceptExplanation', value);
+                          }}
+                          className="gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          Save
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{questionData.conceptExplanation}</p>
+                        
+                        {/* Display images in view mode */}
+                        {questionData.conceptImages && questionData.conceptImages.length > 0 && (
+                          <div className="border-t dark:border-gray-600 pt-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <ImageIcon className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">Reference Images</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              {questionData.conceptImages.map((img, index) => (
+                                <img 
+                                  key={index}
+                                  src={img} 
+                                  alt={`Concept illustration ${index + 1}`}
+                                  className="w-full h-auto rounded border dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
+                                  onClick={() => window.open(img, '_blank')}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              );
+            })()
+          )}
         </>
+      ) : isCaFinal ? (
+        // Fallback for CA Final without questions
+        <div className="text-center py-12">
+          <HelpCircle className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-gray-700 dark:text-gray-300 mb-2">
+            {questionCategory ? `No ${questionCategory} Available` : 'No Questions Available'}
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400">
+            {questionCategory 
+              ? `${questionCategory} for this chapter will be added soon.` 
+              : 'Questions for this chapter will be added soon.'}
+          </p>
+        </div>
       ) : (
         <>
           {/* Regular Format for Foundation & Inter */}

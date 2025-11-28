@@ -1,6 +1,7 @@
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, ChevronRight } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 // Import all chapter data
 import { caFoundationAccountingConcepts } from '../data/ca-foundation-accounting';
@@ -75,6 +76,7 @@ interface Concept {
   keyPoints: string[];
   example: string;
   formula?: string;
+  subchapters?: Concept[]; // Support for hierarchical chapters
 }
 
 // Mapping of subject IDs to their chapter data
@@ -233,32 +235,93 @@ export function ChapterSelector({ subject, subjectName, selectedChapter, onSelec
       </div>
 
       <div className="grid grid-cols-1 gap-3">
-        {chapters.map((chapter, index) => (
-          <Card
-            key={chapter.id}
-            className={`p-4 transition-all cursor-pointer hover:shadow-lg ${
-              selectedChapter === chapter.id
-                ? 'ring-2 ring-indigo-600 shadow-md bg-indigo-50 dark:bg-indigo-950'
-                : 'hover:scale-[1.01]'
-            }`}
-            onClick={() => onSelectChapter(chapter.id)}
-          >
-            <div className="flex items-start gap-4">
-              <div className="bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 p-3 rounded-lg flex-shrink-0 font-bold">
-                {index + 1}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-gray-900 dark:text-gray-100">{chapter.title}</h3>
-                  <Badge className={getDifficultyColor(chapter.difficulty)}>
-                    {chapter.difficulty}
-                  </Badge>
+        {chapters.map((chapter, index) => {
+          // Check if chapter has subchapters
+          if (chapter.subchapters && chapter.subchapters.length > 0) {
+            return (
+              <Card key={chapter.id} className="p-0 overflow-hidden">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value={chapter.id} className="border-0">
+                    <AccordionTrigger 
+                      className={`p-4 hover:no-underline hover:bg-gray-50 dark:hover:bg-gray-900`}
+                    >
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 p-3 rounded-lg flex-shrink-0 font-bold">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="text-gray-900 dark:text-gray-100">{chapter.title}</h3>
+                            <Badge className={getDifficultyColor(chapter.difficulty)}>
+                              {chapter.difficulty}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{chapter.description}</p>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-0">
+                      <div className="pl-4 pr-4 pb-4 space-y-2">
+                        {chapter.subchapters.map((subchapter, subIndex) => (
+                          <Card
+                            key={subchapter.id}
+                            className={`p-3 transition-all cursor-pointer hover:shadow-md border-l-4 ${
+                              selectedChapter === subchapter.id
+                                ? 'border-l-indigo-600 bg-indigo-50 dark:bg-indigo-950 ring-1 ring-indigo-600'
+                                : 'border-l-gray-300 hover:border-l-indigo-400'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectChapter(subchapter.id);
+                            }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm flex-shrink-0 mt-0.5">
+                                {index + 1}.{subIndex + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm text-gray-900 dark:text-gray-100 mb-1">{subchapter.title}</h4>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{subchapter.description}</p>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </Card>
+            );
+          }
+          
+          // Regular chapter without subchapters
+          return (
+            <Card
+              key={chapter.id}
+              className={`p-4 transition-all cursor-pointer hover:shadow-lg ${
+                selectedChapter === chapter.id
+                  ? 'ring-2 ring-indigo-600 shadow-md bg-indigo-50 dark:bg-indigo-950'
+                  : 'hover:scale-[1.01]'
+              }`}
+              onClick={() => onSelectChapter(chapter.id)}
+            >
+              <div className="flex items-start gap-4">
+                <div className="bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 p-3 rounded-lg flex-shrink-0 font-bold">
+                  {index + 1}
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{chapter.description}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="text-gray-900 dark:text-gray-100">{chapter.title}</h3>
+                    <Badge className={getDifficultyColor(chapter.difficulty)}>
+                      {chapter.difficulty}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{chapter.description}</p>
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
