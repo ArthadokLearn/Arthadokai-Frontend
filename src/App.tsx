@@ -43,6 +43,7 @@ import { ScrollArea } from "./components/ui/scroll-area";
 import { toast } from "sonner@2.0.3";
 import logo from "figma:asset/5c638375b43477d76381740217f8f2eed9947622.png";
 import { getFilteredChapters } from "./utils/ragData";
+import { login } from "./api/auth";
 
 interface StoredUser extends UserData {
   // password is stored but never exposed
@@ -315,31 +316,14 @@ export default function App() {
     );
   };
 
-  const handleLogin = (
+  const handleLogin = async (
     email: string,
     password: string,
-  ): boolean => {
-    const users = JSON.parse(
-      localStorage.getItem("users") || "[]",
-    );
-    const user = users.find(
-      (u: UserData) =>
-        u.email === email && u.password === password,
-    );
-
-    if (user) {
-      const userWithoutPassword = { ...user };
-      delete userWithoutPassword.password;
-      setCurrentUser(userWithoutPassword);
-      localStorage.setItem(
-        "currentUser",
-        JSON.stringify(userWithoutPassword),
-      );
+  ): Promise<boolean> => {
+    if (await login(email, password)) {
       setIsAuthenticated(true);
-
       // Load notifications for this user
       loadNotifications(email);
-
       toast.success("Login successful! Welcome back.");
       return true;
     }
