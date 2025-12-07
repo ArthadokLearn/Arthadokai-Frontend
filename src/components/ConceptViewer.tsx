@@ -24,6 +24,21 @@ import { caFinalAFMConcepts } from '../data/ca-final-afm';
 import { caFinalAuditConcepts } from '../data/ca-final-audit';
 import { caFinalLawConcepts } from '../data/ca-final-law';
 import { caFinalIndirectTaxConcepts } from '../data/ca-final-indirect-tax';
+import axios from 'axios';
+import { log } from 'console';
+
+interface Question {
+  id: string;
+  question_text: string;
+  answer_text: string;
+  how_to_approach?: string;
+  concept_explanation?: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  sequence: number;
+  chapter_id: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Concept {
   id: string;
@@ -866,6 +881,25 @@ export function ConceptViewer({ course, level, subject, chapterId, currentUser, 
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [qaData, setQaData] = useState<Record<string, QuestionAnswer>>({});
+  const [questions, setQuestions] = useState<Question[]>([]);
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const data = await axios.get(`/questions`).then(res => res.data);
+        // sort by sequence to ensure correct order
+        console.log("Fetched questions:", data);
+        const sorted = data.sort((a: Question, b: Question) => a.sequence - b.sequence);
+        setQuestions(sorted);
+      } catch (err) {
+        console.error("Failed to load questions:", err);
+      } finally {
+        // setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, []);
   
   // Ref for file input - must be at top level
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -882,6 +916,9 @@ export function ConceptViewer({ course, level, subject, chapterId, currentUser, 
       }
     }
   }
+  console.log(chapter);
+  // debugger
+  
   
   // Load Q&A data from localStorage on mount
   useEffect(() => {
@@ -941,9 +978,9 @@ export function ConceptViewer({ course, level, subject, chapterId, currentUser, 
         // If no category is set on a question, treat it as "Other" by default
         const qCategory = q.category || 'Other';
         // If questionCategory prop is provided, filter by it
-        if (questionCategory) {
-          return qCategory === questionCategory;
-        }
+        // if (questionCategory) {
+        //   return qCategory === questionCategory;
+        // }
         // If no questionCategory prop, show all questions
         return true;
       })
